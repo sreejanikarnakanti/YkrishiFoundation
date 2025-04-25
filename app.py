@@ -13,8 +13,64 @@ load_dotenv()
 
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
 bcrypt = Bcrypt(app)
+
+#=========LOGIN/REGISTER=================
+
+def get_db_connection():
+    conn = sqlite3.connect('users.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+@app.route('/login_register', methods=['GET', 'POST'])
+def login_register():
+    if 'user' in session:
+        flash(f"User '{session['user']}' is already logged in.", "info")
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        form_type = request.form['form_type']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        if form_type == 'register':
+            confirm_password = request.form.get('confirm_password')
+            if password != confirm_password:
+                flash('Passwords do not match', 'danger')
+                return redirect(url_for('login_register'))
+
+            hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+            try:
+                cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_pw))
+                conn.commit()
+                flash('Registration successful! Please login.', 'success')
+            except sqlite3.IntegrityError:
+                flash('Username already exists.', 'danger')
+            conn.close()
+            return redirect(url_for('login_register'))
+
+        elif form_type == 'login':
+            user = cursor.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+            conn.close()
+            if user and bcrypt.check_password_hash(user['password'], password):
+                session['user'] = user['username']
+                flash(f"Welcome, {user['username']}!", 'success')
+                return redirect(url_for('homepage'))
+            else:
+                flash("Invalid username or password", "danger")
+                return redirect(url_for('login_register'))
+
+    return render_template('login1.html')
+
+@app.route('/home')
+def home():
+    if 'user' in session:
+        return render_template('home.html', username=session['user'])
+    return redirect(url_for('login_register'))
 
 # =================== MAIL CONFIG ===================
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -93,25 +149,6 @@ city_data = {
     }
 }
 
-# =================== DATABASE SETUP ===================
-def init_db():
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-def get_db_connection():
-    conn = sqlite3.connect('users.db')
-    conn.row_factory = sqlite3.Row
-    return conn
 
 # =================== FILE UPLOAD CONFIG ===================
 UPLOAD_FOLDER = "static/uploads"
@@ -127,7 +164,7 @@ def allowed_file(filename):
 
 # =================== ROUTES ===================
 @app.route('/')
-def home():
+def homepage():
     files = os.listdir(app.config["UPLOAD_FOLDER"])
     return render_template('index.html', files=files)
 
@@ -186,8 +223,6 @@ def blog3():
 @app.route('/portfolio-details')
 def portfolio_details():
     return render_template('portfolio-details.html')
-
-
 
 
 
@@ -369,53 +404,7 @@ def crop_advisory():
 
 
 
-
-
-
-
-
-# =================== AUTH ROUTES ===================
-@app.route('/login_register', methods=['GET', 'POST'])
-def login_register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        form_type = request.form['form_type']
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        if form_type == 'register':
-            confirm_password = request.form.get('confirm_password')
-            if password != confirm_password:
-                flash('Passwords do not match', 'danger')
-                return redirect(url_for('login_register'))
-
-            hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
-            try:
-                cursor.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-                               (username, f"{username}@example.com", hashed_pw))
-                conn.commit()
-                flash('Registration successful! Please login.', 'success')
-            except sqlite3.IntegrityError:
-                flash('Username already exists.', 'danger')
-            conn.close()
-            return redirect(url_for('login_register'))
-
-        elif form_type == 'login':
-            user = cursor.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-            conn.close()
-            if user and bcrypt.check_password_hash(user['password'], password):
-                session['user'] = user['username']
-                flash(f"Welcome, {user['username']}!", 'success')
-                return redirect(url_for('home'))
-            else:
-                flash("Invalid username or password", "danger")
-                return redirect(url_for('login_register'))
-
-    return render_template('login.html')
-
-
+#==========================================================#
 
 @app.route('/subscribe', methods=['POST'])
 def subscribe():
@@ -436,5 +425,4 @@ def disable_caching(response):
 
 # =================== RUN APP ===================
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", port=5000, debug=True)
