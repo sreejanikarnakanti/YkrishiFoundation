@@ -27,7 +27,7 @@ def get_db_connection():
 def login_register():
     if 'user' in session:
         flash(f"User '{session['user']}' is already logged in.", "info")
-        return redirect(url_for('home'))
+        return render_template("login1.html")
 
     if request.method == 'POST':
         username = request.form['username']
@@ -69,8 +69,10 @@ def login_register():
 @app.route('/home')
 def home():
     if 'user' in session:
-        return render_template('home.html', username=session['user'])
-    return redirect(url_for('login_register'))
+        flash(f"You are now logged in.", "success")
+        return render_template('index.html', username=session['user'])
+    else:
+        return redirect(url_for('login_register'))
 
 # =================== MAIL CONFIG ===================
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
