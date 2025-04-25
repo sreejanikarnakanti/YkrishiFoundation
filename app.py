@@ -27,7 +27,7 @@ def get_db_connection():
 def login_register():
     if 'user' in session:
         flash(f"User '{session['user']}' is already logged in.", "info")
-        return render_template("login1.html")
+        return  render_template("login1.html")
 
     if request.method == 'POST':
         username = request.form['username']
