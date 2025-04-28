@@ -67,12 +67,52 @@ def login_register():
     return render_template('login1.html')
 
 @app.route('/home')
+@app.route('/')
 def home():
-    if 'user' in session:
-        flash(f"You are now logged in.", "success")
-        return render_template('index.html', username=session['user'])
-    else:
-        return redirect(url_for('login_register'))
+    username = session.get('user')  # Get username if available
+    return render_template('index.html', username=username)
+
+
+# =================== ROUTES ===================
+
+@app.route('/')
+def homepage():
+    return render_template('index.html')
+
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
+@app.route('/services')
+def services():
+    return render_template('services.html')
+
+@app.route('/team')
+def team():
+    return render_template('team.html')
+
+#@app.route('/blog')
+#def blog():
+  #return render_template('blog.html')
+
+@app.route('/blog1')
+def blog1():
+    return render_template('blog1.html')
+
+@app.route('/blog2')
+def blog2():
+    return render_template('blog2.html')
+
+@app.route('/blog3')
+def blog3():
+    return render_template('blog3.html')
+
+@app.route('/portfolio-details')
+def portfolio_details():
+    return render_template('portfolio-details.html')
+
 
 # =================== MAIL CONFIG ===================
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -85,6 +125,52 @@ app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 # Replace with your actual app password
 app.config['MAIL_DEFAULT_SENDER'] = ('YKrishi Foundation', os.getenv('YKRISHI_EMAIL'))
 mail = Mail(app)
+
+
+
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+
+        print(f"Name: {name}, Email: {email}, Subject: {subject}, Message: {message}")
+
+        # Send confirmation email
+        try:
+            msg = Message(
+                subject="Thank You for Contacting YKrishi Foundation!",
+                recipients=[email],  # send to user who filled the form
+            )
+            msg.body = f"""Dear {name},
+
+Thank you for reaching out to YKrishi Foundation. We have received your message and will get back to you shortly.
+
+Here’s what you submitted:
+Subject: {subject}
+Message: {message}
+
+Warm regards,  
+YKrishi Foundation Team
+"""
+            mail.send(msg)
+            flash("Message sent and confirmation email delivered!", "success")
+        except Exception as e:
+            print("Email sending failed:", e)
+            traceback.print_exc()  # ✅ This will show the exact cause in your terminal
+            flash("Message submitted but failed to send confirmation email.", "danger")
+        return render_template('contact.html', success=True)
+
+    return render_template('contact.html')
+
+
+
+
+@app.route('/blog_details')
+def blog_details():
+    return render_template('blog-details.html')  
 
 
 #===============detecting location================ 
@@ -151,141 +237,6 @@ city_data = {
     }
 }
 
-
-# =================== FILE UPLOAD CONFIG ===================
-UPLOAD_FOLDER = "static/uploads"
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'docx'}
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# =================== ROUTES ===================
-@app.route('/')
-def homepage():
-    files = os.listdir(app.config["UPLOAD_FOLDER"])
-    return render_template('index.html', files=files)
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-@app.route("/upload", methods=["GET", "POST"])
-def upload_file():
-    if request.method == "POST":
-        if "file" not in request.files:
-            flash("No file part", "danger")
-            return redirect(request.url)
-
-        file = request.files["file"]
-        if file.filename == "":
-            flash("No selected file", "danger")
-            return redirect(request.url)
-
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            file.save(file_path)
-            flash("File successfully uploaded", "success")
-        else:
-            flash("Invalid file type.", "danger")
-            return redirect(request.url)
-
-    files = os.listdir(app.config["UPLOAD_FOLDER"])
-    return render_template("upload.html", files=files)
-
-@app.route('/services')
-def services():
-    return render_template('services.html')
-
-@app.route('/team')
-def team():
-    return render_template('team.html')
-
-#@app.route('/blog')
-#def blog():
-  #return render_template('blog.html')
-
-@app.route('/blog1')
-def blog1():
-    return render_template('blog1.html')
-
-@app.route('/blog2')
-def blog2():
-    return render_template('blog2.html')
-
-@app.route('/blog3')
-def blog3():
-    return render_template('blog3.html')
-
-@app.route('/portfolio-details')
-def portfolio_details():
-    return render_template('portfolio-details.html')
-
-
-
-@app.route('/contact', methods=['GET', 'POST'])
-def contact():
-    if request.method == 'POST':
-        name = request.form.get('name')
-        email = request.form.get('email')
-        subject = request.form.get('subject')
-        message = request.form.get('message')
-
-        print(f"Name: {name}, Email: {email}, Subject: {subject}, Message: {message}")
-
-        # Send confirmation email
-        try:
-            msg = Message(
-                subject="Thank You for Contacting YKrishi Foundation!",
-                recipients=[email],  # send to user who filled the form
-            )
-            msg.body = f"""Dear {name},
-
-Thank you for reaching out to YKrishi Foundation. We have received your message and will get back to you shortly.
-
-Here’s what you submitted:
-Subject: {subject}
-Message: {message}
-
-Warm regards,  
-YKrishi Foundation Team
-"""
-            mail.send(msg)
-            flash("Message sent and confirmation email delivered!", "success")
-        except Exception as e:
-            print("Email sending failed:", e)
-            traceback.print_exc()  # ✅ This will show the exact cause in your terminal
-            flash("Message submitted but failed to send confirmation email.", "danger")
-        return render_template('contact.html', success=True)
-
-    return render_template('contact.html')
-
-@app.route('/test_email')
-def test_email():
-    try:
-        msg = Message(
-            subject="Test Email from YKrishi Foundation",
-            recipients=["sreejanichikki20@gmail.com"],  # replace with your Gmail
-            body="This is a test email sent via Flask."
-        )
-        mail.send(msg)
-        return "✅ Test email sent successfully!"
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return f"❌ Error sending email: {e}"
-
-
-
-
-@app.route('/blog_details')
-def blog_details():
-    return render_template('blog-details.html')  
 
 #==============crop advisory====================#
 
@@ -414,7 +365,8 @@ def subscribe():
     print("New subscriber:", email)
     # You can save it to a file or database here
     flash("You are successfully subscribed!")
-    return redirect('footer.html')
+    return redirect(url_for('home'))
+
 
 
 # =================== DISABLE CACHE FOR DEV ===================
