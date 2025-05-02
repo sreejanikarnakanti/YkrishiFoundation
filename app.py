@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 bcrypt = Bcrypt(app)
@@ -59,24 +58,16 @@ def login_register():
             if user and bcrypt.check_password_hash(user['password'], password):
                 session['user'] = user['username']
                 flash(f"Welcome, {user['username']}!", 'success')
-                return redirect(url_for('homepage'))
+                return redirect(url_for('home'))
             else:
                 flash("Invalid username or password", "danger")
                 return redirect(url_for('login_register'))
 
     return render_template('login1.html')
 
-@app.route('/home')
+
 @app.route('/')
 def home():
-    username = session.get('user')  # Get username if available
-    return render_template('index.html', username=username)
-
-
-# =================== ROUTES ===================
-
-@app.route('/')
-def homepage():
     return render_template('index.html')
 
 
@@ -93,10 +84,6 @@ def services():
 def team():
     return render_template('team.html')
 
-#@app.route('/blog')
-#def blog():
-  #return render_template('blog.html')
-
 @app.route('/blog1')
 def blog1():
     return render_template('blog1.html')
@@ -107,11 +94,8 @@ def blog2():
 
 @app.route('/blog3')
 def blog3():
-    return render_template('blog3.html')
+    return render_template('blog3.html')   
 
-@app.route('/portfolio-details')
-def portfolio_details():
-    return render_template('portfolio-details.html')
 
 
 # =================== MAIL CONFIG ===================
@@ -146,15 +130,15 @@ def contact():
             )
             msg.body = f"""Dear {name},
 
-Thank you for reaching out to YKrishi Foundation. We have received your message and will get back to you shortly.
+            Thank you for reaching out to YKrishi Foundation. We have received your message and will get back to you shortly.
 
-Here’s what you submitted:
-Subject: {subject}
-Message: {message}
+            Here’s what you submitted:
+            Subject: {subject}
+            Message: {message}
 
-Warm regards,  
-YKrishi Foundation Team
-"""
+            Warm regards,  
+            YKrishi Foundation Team
+            """
             mail.send(msg)
             flash("Message sent and confirmation email delivered!", "success")
         except Exception as e:
@@ -165,30 +149,23 @@ YKrishi Foundation Team
 
     return render_template('contact.html')
 
-
-
-
-@app.route('/blog_details')
-def blog_details():
-    return render_template('blog-details.html')  
-
-
-#===============detecting location================ 
-# Add this function below the imports
+#=======================detecting location================ 
+ # Add this function below the imports
 def get_city_from_ip():
     try:
-        ip_data = requests.get("https://ipinfo.io").json()
+        response = requests.get("https://ipinfo.io", timeout=3)
+        ip_data = response.json()
         return ip_data.get("city", "Hyderabad")  # fallback
     except:
         return "Hyderabad"
-    
+                                                                                
 # ✅ PLACE YOUR CITY DATA HERE
 city_data = {
     "Hyderabad": {
         "monthly_guide": [
             "🌱 Sow cotton, red gram, and maize this month.",
             "💧 Use mulching to conserve moisture during hot spells.",
-            "🔍 Monitor leafhoppers and aphids weekly.",
+            "🔍 Monitor leafhoppers and aphids weekly."
         ],
         "pest_alert": (
             "🪲 **Red cotton bug** active in dry spells.<br>"
@@ -238,6 +215,7 @@ city_data = {
 }
 
 
+
 #==============crop advisory====================#
 
 @app.route("/crop-advisory")
@@ -249,17 +227,6 @@ def crop_advisory():
         city = get_city_from_ip()
 
     api_key = "3f44e391e85821f7634676e916b9babc"
-
-    # 🌐 Get coordinates of the city for One Call API
-    geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={api_key}"
-    geo_data = requests.get(geo_url).json()
-
-    if geo_data:
-        lat = geo_data[0]['lat']
-        lon = geo_data[0]['lon']
-    else:
-        print("❌ Could not fetch lat/lon for city")
-        lat, lon = 17.385, 78.4867  # fallback to Hyderabad
 
     weather_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
     response = requests.get(weather_url).json()
@@ -278,35 +245,6 @@ def crop_advisory():
     else:
         print("⚠️ Error fetching weather for", city)
 
-    # 📅 Get 5-day forecast using One Call API
-    from datetime import datetime
-
-    forecast_url = f"https://api.openweathermap.org/data/2.5/onecall?lat={lat}&lon={lon}&exclude=minutely,hourly,current,alerts&appid={api_key}&units=metric"
-
-    forecast_data = requests.get(forecast_url).json()
-    print("One Call Forecast Response:", forecast_data)
-
-
-    daily_forecast = []
-    alerts = []
-
-    if "daily" in forecast_data:
-        for day in forecast_data['daily'][:5]:
-            date_str = datetime.utcfromtimestamp(day['dt']).strftime('%a, %d %b')
-            day_forecast = {
-                'date': date_str,
-                'temp_day': day['temp']['day'],
-                'humidity': day['humidity'],
-                'wind_speed': day['wind_speed'],
-                'rain': day.get('rain', 0)
-            }
-            daily_forecast.append(day_forecast)
-
-            if day_forecast['rain'] > 10:
-                alerts.append(f"{date_str}: 🌧️ Heavy rain expected. Delay irrigation.")
-            if day_forecast['wind_speed'] > 10:
-                alerts.append(f"{date_str}: 🌬️ High wind. Avoid pesticide spraying.")
-
     # Crop suggestions based on temperature
     if 28 <= temperature <= 35:
         crops = ['Maize', 'Cotton', 'Paddy']
@@ -315,20 +253,6 @@ def crop_advisory():
     else:
         crops = ['Millets', 'Sorghum']
 
-    # 🌾 Default fallback content
-    monthly_guide = [
-        "🌱 General advice: Prepare land and check irrigation systems.",
-        "💧 Apply organic compost before sowing."
-    ]
-    pest_alert = (
-        "⚠️ General pest watch:<br>"
-        "- Check for aphids or leaf spot weekly.<br>"
-        "- Use neem-based sprays if needed."
-    )
-    fertilizer_tip = (
-        "💧 Add nitrogen-based fertilizer 15 days after sowing.<br>"
-        "- Avoid over-fertilizing. Use compost where possible."
-    )
 
     # ✅ Use city-specific tips if available in city_data
     if city in city_data:
@@ -338,9 +262,23 @@ def crop_advisory():
         fertilizer_tip = city_data[city]["fertilizer_tip"]
     else:
         print("❌ No specific data for", city)
-        
-    print("Forecast data being sent to template:", daily_forecast)
-    print("Advisory alerts:", alerts)
+
+        # 🌾 Default fallback content
+        monthly_guide = [
+            "🌱 General advice: Prepare land and check irrigation systems.",
+            "💧 Apply organic compost before sowing."
+        ]
+        pest_alert = (
+            "⚠️ General pest watch:<br>"
+            "- Check for aphids or leaf spot weekly.<br>"
+            "- Use neem-based sprays if needed."
+        )
+        fertilizer_tip = (
+            "💧 Add nitrogen-based fertilizer 15 days after sowing.<br>"
+            "- Avoid over-fertilizing. Use compost where possible."
+        )
+
+          
 
     return render_template("crop_advisory.html",
                            temperature=temperature,
@@ -350,33 +288,16 @@ def crop_advisory():
                            crops=crops,
                            monthly_guide=monthly_guide,
                            pest_alert=pest_alert,
-                           fertilizer_tip=fertilizer_tip,
-                           forecast=daily_forecast,
-                           alerts=alerts)
+                           fertilizer_tip=fertilizer_tip)
 
-
-
-
-#==========================================================#
 
 
 @app.route('/subscribe', methods=['POST'])
 def subscribe():
     email = request.form['email']
     print("New subscriber:", email)
-    # You can save it to a file or database here
-    flash("You are successfully subscribed!")
     return redirect(url_for('home'))
-
-
-
-# =================== DISABLE CACHE FOR DEV ===================
-@app.after_request
-def disable_caching(response):
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
+    flash("You are successfully subscribed!")
 
 # =================== RUN APP ===================
 if __name__ == "__main__":
