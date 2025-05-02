@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session,  get_flashed_messages
 import os
 import sqlite3
-from werkzeug.utils import secure_filename
 from flask_bcrypt import Bcrypt
 from flask_mail import Mail, Message
 import traceback
@@ -143,7 +142,7 @@ def contact():
             flash("Message sent and confirmation email delivered!", "success")
         except Exception as e:
             print("Email sending failed:", e)
-            traceback.print_exc()  # ✅ This will show the exact cause in your terminal
+            traceback.print_exc()  #  This will show the exact cause in your terminal
             flash("Message submitted but failed to send confirmation email.", "danger")
         return render_template('contact.html', success=True)
 
@@ -159,7 +158,7 @@ def get_city_from_ip():
     except:
         return "Hyderabad"
                                                                                 
-# ✅ PLACE YOUR CITY DATA HERE
+# PLACE YOUR CITY DATA HERE
 city_data = {
     "Hyderabad": {
         "monthly_guide": [
@@ -254,14 +253,14 @@ def crop_advisory():
         crops = ['Millets', 'Sorghum']
 
 
-    # ✅ Use city-specific tips if available in city_data
+    #  Use city-specific tips if available in city_data
     if city in city_data:
-        print("✅ City-specific tips loaded for:", city)
+        print(" City-specific tips loaded for:", city)
         monthly_guide = city_data[city]["monthly_guide"]
         pest_alert = city_data[city]["pest_alert"]
         fertilizer_tip = city_data[city]["fertilizer_tip"]
     else:
-        print("❌ No specific data for", city)
+        print(" No specific data for", city)
 
         # 🌾 Default fallback content
         monthly_guide = [
